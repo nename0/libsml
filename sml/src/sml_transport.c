@@ -99,7 +99,17 @@ size_t sml_transport_read(int fd, unsigned char *buffer, size_t max_len) {
 
 			if (buf[len] == 0x1a) {
 				// found end sequence
-				len += 4;
+				len += 2;
+
+				// check crc
+				u16 crcFile = ((buf[len] << 8) & 0xFF00) | (buf[len+1] & 0x00FF);
+				u16 crcBytes = sml_crc16_calculate(&(buf[0]), len);
+				if (crcFile != crcBytes) {
+					fprintf(stderr, "libsml: sml_transport_read(): crc mismatch, dropping file\n");
+					return 0;
+				}
+
+				len += 2;
 				memcpy(buffer, &(buf[0]), len);
 				return len;
 			} else {
